@@ -1,4 +1,53 @@
-// js/controls.js
+const SETTINGS_MAP = [
+    ['speed', 1000], 
+    ['complexity', 1],  // Already integer
+    ['size', 100],
+    ['centerX', 100],
+    ['centerY', 100],
+    ['mirrorFolds', 1], // Already integer
+    ['mirrorAngle', 1], // Already integer
+    ['colorSpeed', 1000],
+    ['colorPalette', 1], // Already integer
+    ['saturation', 1],   // Already integer
+    ['exposure', 100],
+    ['hueShift', 1],    // Already integer
+    ['contrast', 100],
+    ['noiseType', 1],   // Already integer
+    ['noiseScale', 100],
+    ['octaves', 1],     // Already integer
+    ['persistence', 1000],
+    ['lacunarity', 100],
+    ['domainWarp', 100],
+    ['pixelSize', 1000],
+    ['pixelAspect', 100],
+    ['enablePixelation', 1], // Boolean to 1/0
+    ['zoomLevel', 100],
+    ['centerOffsetX', 100], 
+    ['centerOffsetY', 100]
+];
+
+const MULTIPLIERS = {
+    speed: 1000,
+    complexity: 100,
+    size: 100,
+    centerX: 100,
+    centerY: 100,
+    mirrorFolds: 100,
+    mirrorAngle: 100,
+    colorSpeed: 1000,
+    saturation: 100,
+    exposure: 100,
+    hueShift: 100,
+    contrast: 100,
+    noiseScale: 100,
+    persistence: 1000,
+    lacunarity: 100,
+    domainWarp: 100,
+    pixelSize: 100,
+    pixelAspect: 100
+};
+
+
 class Controls {
     constructor() {
         this.MAX_MIRROR_POINTS = 4;
@@ -185,78 +234,73 @@ class Controls {
     }
 
     getAllSettings() {
-        return {
-            speed: document.getElementById('speed').value,
-            complexity: document.getElementById('complexity').value,
-            size: document.getElementById('size').value,
-            centerX: document.getElementById('centerX').value,
-            centerY: document.getElementById('centerY').value,
-            mirrorFolds: document.getElementById('mirrorFolds').value,
-            mirrorAngle: document.getElementById('mirrorAngle').value,
-            colorSpeed: document.getElementById('colorSpeed').value,
-            colorPalette: document.getElementById('colorPalette').value,
-            saturation: document.getElementById('saturation').value,
-            exposure: document.getElementById('exposure').value,
-            hueShift: document.getElementById('hueShift').value,
-            contrast: document.getElementById('contrast').value,
-            enablePixelation: document.getElementById('enablePixelation').checked,
-            pixelSides: document.getElementById('pixelSides').value,
-            pixelSize: document.getElementById('pixelSize').value,
-            pixelAspect: document.getElementById('pixelAspect').value,
-            noiseType: document.getElementById('noiseType').value,
-            noiseScale: document.getElementById('noiseScale').value,
-            octaves: document.getElementById('octaves').value,
-            persistence: document.getElementById('persistence').value,
-            lacunarity: document.getElementById('lacunarity').value,
-            domainWarp: document.getElementById('domainWarp').value,
-            mirrorPoints: this.mirrorPoints,
-            zoomLevel: camera.zoomLevel,
-            centerOffset: camera.centerOffset
-        };
+        // Convert to array format
+        const values = SETTINGS_MAP.map(([key, multiplier]) => {
+            const el = document.getElementById(key);
+            if (!el) {
+                // Handle camera settings
+                if (key === 'zoomLevel') return Math.round(camera.zoomLevel * multiplier);
+                if (key === 'centerOffsetX') return Math.round(camera.centerOffset.x * multiplier);
+                if (key === 'centerOffsetY') return Math.round(camera.centerOffset.y * multiplier);
+                return 0;
+            }
+            const val = el.type === 'checkbox' ? (el.checked ? 1 : 0) : el.value;
+            return Math.round(parseFloat(val) * multiplier);
+        });
+        
+        // Add mirror points as flat array
+        const points = this.mirrorPoints.map(p => [
+            Math.round(p.x * 100),
+            Math.round(p.y * 100)
+        ]).flat();
+        
+        return btoa(values.concat(points).join(','));
     }
 
-    applySettings(settings) {
-        for (const [key, value] of Object.entries(settings)) {
-            if (key === 'mirrorPoints') {
-                this.mirrorPoints = value;
-                // Rebuild mirror points UI
-                const container = document.getElementById('mirrorPoints');
-                container.innerHTML = '';
-                value.forEach((point, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'mirror-point';
-                    div.dataset.index = index;
-                    div.innerHTML = `
-                        <label>Point ${index + 1} X <span class="value-display" id="mirrorPoint${index}XValue">${point.x}</span>
-                            <input type="range" class="mirror-point-x" min="-1" max="1" step="0.01" value="${point.x}">
-                        </label>
-                        <label>Point ${index + 1} Y <span class="value-display" id="mirrorPoint${index}YValue">${point.y}</span>
-                            <input type="range" class="mirror-point-y" min="-1" max="1" step="0.01" value="${point.y}">
-                        </label>
-                    `;
-                    container.appendChild(div);
-                });
-                this.updateMirrorPointControls();
-            } else if (key === 'zoomLevel') {
-                camera.zoomLevel = value;
-            } else if (key === 'centerOffset') {
-                camera.centerOffset = value;
-            } else if (key === 'enablePixelation') {
-                document.getElementById(key).checked = value;
-            } else {
-                const element = document.getElementById(key);
-                if (element) {
-                    element.value = value;
-                    element.dispatchEvent(new Event('input'));
-                }
+    applySettings(encoded) {
+        const values = atob(encoded).split(',').map(Number);
+        
+        // Extract main settings
+        SETTINGS_MAP.forEach(([key, multiplier], i) => {
+            // Handle camera settings
+            if (key === 'zoomLevel') {
+                camera.zoomLevel = values[i] / multiplier;
+                return;
             }
-        }
+            if (key === 'centerOffsetX') {
+                camera.centerOffset.x = values[i] / multiplier;
+                return;
+            }
+            if (key === 'centerOffsetY') {
+                camera.centerOffset.y = values[i] / multiplier;
+                return;
+            }
+    
+            const el = document.getElementById(key);
+            if (!el) return;
+            const val = values[i] / multiplier;
+            if (el.type === 'checkbox') {
+                el.checked = val === 1;
+            } else {
+                el.value = val;
+            }
+            el.dispatchEvent(new Event('input'));
+        });
+        
+        // Extract mirror points
+        const pointCount = (values.length - SETTINGS_MAP.length) / 2;
+        this.mirrorPoints = Array(pointCount).fill().map((_, i) => ({
+            x: values[SETTINGS_MAP.length + i*2] / 100,
+            y: values[SETTINGS_MAP.length + i*2 + 1] / 100
+        }));
+        
+        this.rebuildMirrorPointsUI();
     }
 
     getMirrorPoints() {
         return this.mirrorPoints;
     }
 }
-
 // Create global controls instance
 const controls = new Controls();
+
