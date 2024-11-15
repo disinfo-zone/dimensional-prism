@@ -1,0 +1,430 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #000;
+    font-family: "Courier New", monospace;
+    color: var(--text);
+    --accent: #00ffa3;
+    --text: #b4ffed;
+    --bg: rgba(0, 15, 20, 0.95);
+    --border: rgba(0, 255, 255, 0.2);
+}
+
+h2, h3 {
+    color: var(--accent);
+    font-size: 1.1em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1.5em;
+    font-weight: normal;
+}
+
+#canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#controls {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 320px;
+    background: rgba(25, 36, 39, 0.85);
+    backdrop-filter: blur(12px);
+    padding: 20px;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    box-shadow: -2px 0 20px rgba(0, 255, 255, 0.1);
+}
+
+#controls.visible {
+    transform: translateX(0);
+}
+
+/* Update toggle button CSS */
+#toggleControls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 15, 20, 0.4);
+    border: 0px solid var(--accent);
+    color: var(--accent);
+    width: 48px;
+    height: 48px;
+    cursor: pointer;
+    z-index: 1000;
+    border-radius: 50%;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 15px rgba(0, 255, 163, 0.2);
+    transition: all 0.3s;
+}
+
+#toggleControls:hover {
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.control-group {
+    margin-bottom: 24px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(0, 20, 25, 0.4);
+    position: relative;
+}
+
+.control-group h3 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+}
+
+.reset-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reset-button:hover {
+    background: var(--accent);
+    color: #000;
+}
+
+label {
+    display: block;
+    margin: 12px 0;
+    font-size: 13px;
+    position: relative;
+}
+
+input[type="range"] {
+    width: 100%;
+    margin: 8px 0;
+    -webkit-appearance: none;
+    background: rgba(0, 255, 255, 0.1);
+    height: 4px;
+    border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+select {
+    width: 100%;
+    background: rgba(0, 20, 25, 0.5);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    padding: 8px;
+    border-radius: 4px;
+    font-family: "Courier New", monospace;
+    cursor: pointer;
+}
+
+.value-display {
+    position: absolute;
+    right: 0;
+    top: 0;
+    color: var(--accent);
+    font-size: 12px;
+}
+
+/* Custom scrollbar */
+#controls::-webkit-scrollbar {
+    width: 8px;
+}
+
+#controls::-webkit-scrollbar-track {
+    background: rgba(0, 20, 25, 0.3);
+}
+
+#controls::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+    background: var(--accent);
+    position: relative;
+}
+
+input[type="checkbox"]:checked:after {
+    content: "✓";
+    color: #000;
+    position: absolute;
+    left: 2px;
+    top: -2px;
+}
+
+/* Style add mirror point button */
+#addMirrorPoint {
+    width: 100%;
+    background: rgba(0, 20, 25, 0.5);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    padding: 8px;
+    border-radius: 4px;
+    font-family: "Courier New", monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+}
+
+#addMirrorPoint:hover {
+    background: var(--accent);
+    color: #000;
+}
+
+/* Style slider thumbs */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px var(--accent);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+    box-shadow: 0 0 20px var(--accent);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+/* Style slider track */
+input[type="range"] {
+    background: rgba(0, 255, 163, 0.1);
+    height: 4px;
+    border-radius: 2px;
+    box-shadow: 0 0 5px rgba(0, 255, 163, 0.2);
+}
+
+/* Update display values color */
+.value-display {
+    color: var(--accent);
+}
+
+#resetCamera {
+    width: 100%;
+    background: rgba(0, 20, 25, 0.5);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    padding: 8px;
+    border-radius: 4px;
+    font-family: "Courier New", monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 10px 0;
+    position: relative; /* Reset any absolute/fixed positioning */
+    right: auto; /* Reset any right positioning */
+    top: auto; /* Reset any top positioning */
+}
+
+
+#resetCamera:hover {
+    background: var(--accent);
+    color: #000;
+}
+
+#shareButton {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 15, 20, 0.4);
+    border: 0px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 16px;
+    cursor: pointer;
+    z-index: 1000;
+    border-radius: 24px;
+    font-size: 14px;
+    font-family: "Courier New", monospace;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 15px rgba(0, 255, 163, 0.2);
+    transition: all 0.3s;
+}
+
+#shareButton:hover {
+    background: var(--accent);
+    color: #000;
+    transform: scale(1.05);
+}
+
+.copied-tooltip {
+    position: fixed;
+    bottom: 70px;
+    left: 20px;
+    background: var(--accent);
+    color: #000;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 1000;
+}
+
+.copied-tooltip.visible {
+    opacity: 1;
+}
+
+/* Enhanced mobile responsiveness */
+@media (max-width: 768px) {
+    #controls {
+        width: 70%;
+        padding: 16px;
+        background: rgba(25, 36, 39, 0.4); /* More transparent */
+        backdrop-filter: blur(0px);
+        -webkit-backdrop-filter: blur(0px);
+    }
+
+    /* More reasonable text sizes */
+    h2 {
+        font-size: 20px;
+        margin: 16px 0;
+    }
+
+    h3 {
+        font-size: 16px;
+        margin: 16px 0;
+    }
+
+    label {
+        font-size: 14px;
+        margin: 12px 0;
+        display: block;
+    }
+
+    /* Moderately sized controls */
+    input[type="range"] {
+        height: 6px;
+        margin: 12px 0;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        width: 24px;
+        height: 24px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Compact but usable dropdowns */
+    select {
+        height: 40px;
+        font-size: 14px;
+        padding: 8px;
+        margin: 8px 0;
+    }
+
+    /* Compact value displays */
+    .value-display {
+        font-size: 14px;
+        right: 8px;
+    }
+
+    /* Tighter groups */
+    .control-group {
+        background: rgba(0, 20, 25, 0.3);
+        border: 1px solid rgba(0, 255, 255, 0.15);
+        margin-bottom: 16px;
+        padding: 12px;
+    }
+
+    /* Reasonable checkboxes */
+    input[type="checkbox"] {
+        width: 24px;
+        height: 24px;
+        margin: 8px;
+    }
+
+    #resetCamera {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+
+    #shareButton {
+        font-size: 12px;
+        padding: 6px 12px;
+        bottom: 12px;
+        left: 12px;
+    }
+    
+    .copied-tooltip {
+        bottom: 50px;
+        left: 12px;
+        font-size: 10px;
+    }
+}

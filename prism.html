@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+<head>
+    <title>Dimensional Interface</title>
+    <link rel="stylesheet" href="css/prism-styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <button id="toggleControls">⚙</button>
+    <div id="controls">
+        <h2>Dimensional Controls</h2>
+        <div class="control-group">
+            <h3>Base Configuration</h3>
+            <label>Base Speed <span class="value-display" id="speedValue">1.0</span>
+                <input type="range" id="speed" min="0.001" max="2" step="0.005" value="0.2">
+            </label>
+            <label>Complexity <span class="value-display" id="complexityValue">5</span>
+                <input type="range" id="complexity" min="1" max="50" step="1" value="20">
+            </label>
+            <label>Size <span class="value-display" id="sizeValue">1.0</span>
+                <input type="range" id="size" min="0.1" max="50" step="0.1" value="20">
+            </label>
+            <button id="resetCamera" class="reset-button">Reset Camera</button>
+        </div>
+        <div class="control-group">
+            <h3>Mirror Configuration</h3>
+            <label>Center X <span class="value-display" id="centerXValue">0.0</span>
+                <input type="range" id="centerX" min="-1" max="1" step="0.01" value="0">
+            </label>
+            <label>Center Y <span class="value-display" id="centerYValue">0.0</span>
+                <input type="range" id="centerY" min="-1" max="1" step="0.01" value="0">
+            </label>
+            <label>Mirror Folds <span class="value-display" id="mirrorFoldsValue">2</span>
+                <input type="range" id="mirrorFolds" min="1" max="128" step="1" value="6">
+            </label>
+            <label>Mirror Angle <span class="value-display" id="mirrorAngleValue">0°</span>
+                <input type="range" id="mirrorAngle" min="0" max="360" step="1" value="0">
+            </label>
+        </div>
+        <div class="control-group">
+            <h3>Addl Mirror Points</h3>
+                <div id="mirrorPoints">
+                    <div class="mirror-point" data-index="0">
+                        <label>Point 1 X <span class="value-display" id="mirrorPoint0XValue">0.0</span>
+                            <input type="range" class="mirror-point-x" min="-1" max="1" step="0.01" value="0">
+                        </label>
+                        <label>Point 1 Y <span class="value-display" id="mirrorPoint0YValue">0.0</span>
+                            <input type="range" class="mirror-point-y" min="-1" max="1" step="0.01" value="0">
+                        </label>
+                    </div>
+                </div>
+            <button id="addMirrorPoint">Add Mirror Point</button>
+        </div>
+        <div class="control-group">
+            <h3>Pixelator</h3>
+            <label>Enable Pixelation
+                <input type="checkbox" id="enablePixelation">
+            </label>
+            <label>Cell Shape
+                <select id="pixelSides">
+                    <option value="4">Square</option>
+                    <option value="3">Triangle</option>
+                    <option value="6">Hexagon</option>
+                </select>
+            </label>
+            <label>Cell Size <span class="value-display" id="pixelSizeValue">0.05</span>
+                <input type="range" id="pixelSize" min="0.005" max="0.3" step="0.001" value="0.05">
+            </label>
+            <label>Aspect Ratio <span class="value-display" id="pixelAspectValue">1.0</span>
+                <input type="range" id="pixelAspect" min="0.5" max="2" step="0.1" value="1.0">
+            </label>
+        </div>
+        <div class="control-group">
+            <h3>Color Configuration</h3>
+            <label>Color Palette
+                <select id="colorPalette">
+                    <option value="0">Rainbow Flow</option>
+                    <option value="1">Cosmos</option>
+                    <option value="2">Forest</option>
+                    <option value="3">Ocean</option>
+                    <option value="4">Sunset</option>
+                    <option value="5">Northern Lights</option>
+                    <option value="6">Crystal</option>
+                    <option value="7">Sacred Flame</option>
+                </select>
+            </label>
+            <label>Color Speed <span class="value-display" id="colorSpeedValue">1.0</span>
+                <input type="range" id="colorSpeed" min="0.01" max="5" step="0.01" value="0.3">
+            </label>
+            <label>Hue Shift <span class="value-display" id="hueShiftValue">0°</span>
+                <input type="range" id="hueShift" min="0" max="360" step="1" value="0">
+            </label>
+            <label>Saturation <span class="value-display" id="saturationValue">50%</span>
+                <input type="range" id="saturation" min="0" max="100" step="1" value="85">
+            </label>
+            <label>Exposure <span class="value-display" id="exposureValue">0.0 EV</span>
+                <input type="range" id="exposure" min="-3" max="3" step="0.1" value="1">
+            </label>
+            <label>Contrast <span class="value-display" id="contrastValue">0.0</span>
+                <input type="range" id="contrast" min="-3" max="5" step="0.1" value="0.3">
+            </label>
+        </div>
+        <div class="control-group">
+            <h3>Noise Configuration</h3>
+            <label>Noise Type
+                <select id="noiseType">
+                    <option value="0">Sine Wave</option>
+                    <option value="1">Perlin</option>
+                    <option value="2">Simplex</option>
+                    <option value="3">Voronoi</option>
+                    <option value="4">Fractal</option>
+                </select>
+            </label>
+            <label>Noise Scale <span class="value-display" id="noiseScaleValue">1.0</span>
+                <input type="range" id="noiseScale" min="0.1" max="10" step="0.1" value="1.0">
+            </label>
+            <label>Octaves <span class="value-display" id="octavesValue">4</span>
+                <input type="range" id="octaves" min="1" max="8" step="1" value="4">
+            </label>
+            <label>Persistence <span class="value-display" id="persistenceValue">0.5</span>
+                <input type="range" id="persistence" min="0.1" max="0.9" step="0.1" value="0.5">
+            </label>
+            <label>Lacunarity <span class="value-display" id="lacunarityValue">2.0</span>
+                <input type="range" id="lacunarity" min="1.0" max="4.0" step="0.1" value="2.0">
+            </label>
+            <label>Domain Warp <span class="value-display" id="domainWarpValue">0.0</span>
+                <input type="range" id="domainWarp" min="0" max="2" step="0.1" value="0">
+            </label>
+        </div>
+    </div>
+    <button id="shareButton">🔗</button>
+    <div class="copied-tooltip">URL Copied!</div>
+
+    <script src="js/shaders.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
