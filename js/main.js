@@ -1,11 +1,64 @@
 class Renderer {
     constructor() {
+        // Defer full initialization until DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
+        }
+    }
+
+    init() {
         this.canvas = document.getElementById('canvas');
-        this.gl = this.canvas.getContext('webgl');
-        this.program = null;
-        this.uniforms = {};
+        if (!this.canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
+
+        this.setupContext();
+        if (!this.gl) return;
+
         this.setupWebGL();
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+        
+        // Start render loop immediately after init
         this.startRenderLoop();
+    }
+
+    setupContext() {
+        const contextAttributes = {
+            alpha: true,
+            depth: false,
+            stencil: false,
+            antialias: false,
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false,
+            powerPreference: 'default'
+        };
+
+        try {
+            this.gl = this.canvas.getContext('webgl2', contextAttributes) || 
+                     this.canvas.getContext('webgl', contextAttributes);
+            
+            if (!this.gl) {
+                console.error('WebGL not available');
+                return;
+            }
+
+            // Enable required extensions
+            this.gl.getExtension('OES_standard_derivatives');
+            
+        } catch (err) {
+            console.error('WebGL context creation failed:', err);
+        }
+    }
+
+    resizeCanvas() {
+        const pixelRatio = window.devicePixelRatio || 1;
+        this.canvas.width = window.innerWidth * pixelRatio;
+        this.canvas.height = window.innerHeight * pixelRatio;
+        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     }
 
     setupWebGL() {
@@ -137,4 +190,10 @@ class Renderer {
 }
 
 // Create global renderer instance
-const renderer = new Renderer();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.renderer = new Renderer();
+    });
+} else {
+    window.renderer = new Renderer();
+}

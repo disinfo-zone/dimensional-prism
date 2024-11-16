@@ -300,6 +300,31 @@ class Controls {
     getMirrorPoints() {
         return this.mirrorPoints;
     }
+
+    rebuildMirrorPointsUI() {
+        // Clear existing mirror points UI
+        const container = document.getElementById('mirrorPoints');
+        container.innerHTML = '';
+    
+        // Rebuild UI for each mirror point
+        this.mirrorPoints.forEach((point, index) => {
+            const div = document.createElement('div');
+            div.className = 'mirror-point';
+            div.dataset.index = index;
+            div.innerHTML = `
+                <label>Point ${index + 1} X <span class="value-display" id="mirrorPoint${index}XValue">${point.x.toFixed(2)}</span>
+                    <input type="range" class="mirror-point-x" min="-1" max="1" step="0.01" value="${point.x}">
+                </label>
+                <label>Point ${index + 1} Y <span class="value-display" id="mirrorPoint${index}YValue">${point.y.toFixed(2)}</span>
+                    <input type="range" class="mirror-point-y" min="-1" max="1" step="0.01" value="${point.y}">
+                </label>
+            `;
+            container.appendChild(div);
+        });
+    
+        // Update event listeners for the new controls
+        this.updateMirrorPointControls();
+    }
 }
 // Create global controls instance
 const controls = new Controls();

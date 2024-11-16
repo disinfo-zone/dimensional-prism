@@ -338,6 +338,78 @@ input[type="range"] {
     opacity: 1;
 }
 
+/* Audio Controls */
+#audioControls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 320px;
+    background: rgba(25, 36, 39, 0.85);
+    backdrop-filter: blur(12px);
+    padding: 20px;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    box-shadow: 2px 0 20px rgba(0, 255, 255, 0.1);
+    z-index: 999;
+}
+
+#audioControls.visible {
+    transform: translateX(0);
+}
+
+#toggleAudio {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 15, 20, 0.4);
+    border: 0px solid var(--accent);
+    color: var(--accent);
+    width: 48px;
+    height: 48px;
+    cursor: pointer;
+    z-index: 1000;
+    border-radius: 50%;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 15px rgba(0, 255, 163, 0.2);
+    transition: all 0.3s;
+}
+
+#toggleAudio:hover {
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.play-button {
+    width: 100%;
+    background: rgba(0, 20, 25, 0.5);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    padding: 8px;
+    border-radius: 4px;
+    font-family: "Courier New", monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+}
+
+.play-button:hover {
+    background: var(--accent);
+    color: #000;
+}
+
+.audio-mode {
+    margin-bottom: 16px;
+    padding: 8px;
+    background: rgba(0, 20, 25, 0.2);
+    border-radius: 4px;
+}
+
 /* Enhanced mobile responsiveness */
 @media (max-width: 768px) {
     #controls {

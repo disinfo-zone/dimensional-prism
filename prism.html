@@ -2,14 +2,77 @@
 <html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' blob:;
+    media-src 'self' blob:;
+    worker-src 'self' blob:;
+    img-src 'self' data: blob:;
+">
     <meta name="apple-mobile-web-app-capable" content="yes">
 <head>
     <title>Dimensional Interface</title>
     <link rel="stylesheet" href="css/prism-styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    <button id="toggleAudio">🎵</button>
+    <div id="audioControls">
+        <h2>Binaural Beats</h2>
+        <div class="control-group">
+            <h3>Tone Controls</h3>
+                <label>Base Frequency <span class="value-display" id="baseFreqValue">432</span>
+                    <input type="range" id="baseFreq" min="20" max="800" step="1" value="432">
+                </label>
+                <label>Swap Ears
+                    <input type="checkbox" id="swapEars">
+                </label>
+                <label>Binaural Difference
+                    <select id="binauralDiff">
+                        <option value="0.5">Deep Delta (0.5 Hz)</option>
+                        <option value="2.5">Delta Healing (2.5 Hz)</option>
+                        <option value="3.5">Delta Focus (3.5 Hz)</option>
+                        <option value="4.5">Theta Meditation (4.5 Hz)</option>
+                        <option value="7.83">Schumann (7.83 Hz)</option>
+                        <option value="8.0">Theta Learning (8.0 Hz)</option>
+                        <option value="10.0">Alpha Relaxation (10.0 Hz)</option>
+                        <option value="12.0">Alpha Focus (12.0 Hz)</option>
+                        <option value="15.0">Beta Awareness (15.0 Hz)</option>
+                        <option value="23.0">Beta Focus (23.0 Hz)</option>
+                        <option value="30.0">Gamma Start (30.0 Hz)</option>
+                        <option value="40.0">Gamma Insight (40.0 Hz)</option>
+                    </select>
+                </label>
+                <label>Waveform
+                    <select id="waveform">
+                        <option value="sine">Sine</option>
+                        <option value="triangle">Triangle</option>
+                    </select>
+                </label>
+                <label>Volume <span class="value-display" id="volumeValue">-12</span>
+                    <input type="range" id="volume" min="-40" max="0" step="1" value="-12">
+                </label>
+        </div>
+        <div class="control-group">
+            <h3>Enhancement</h3>
+            <label>Enable Enhancement
+                <input type="checkbox" id="enhancedMode">
+            </label>
+            <div id="enhancementControls" style="display: none;">
+                <label>Warmth <span class="value-display" id="warmthValue">0.5</span>
+                    <input type="range" id="warmth" min="0" max="1" step="0.1" value="0.5">
+                </label>
+                <label>Space <span class="value-display" id="spaceValue">0.3</span>
+                    <input type="range" id="space" min="0" max="1" step="0.1" value="0.3">
+                </label>
+            </div>
+        </div>
+        <button id="toggleTone" class="play-button">Start</button>
+    </div>
     <button id="toggleControls">⚙</button>
     <div id="controls">
         <h2>Dimensional Controls</h2>
@@ -139,5 +202,6 @@
     <script src="js/camera.js"></script>
     <script src="js/controls.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/audio.js"></script>
 </body>
 </html>
