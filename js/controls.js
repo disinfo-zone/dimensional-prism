@@ -23,7 +23,11 @@ const SETTINGS_MAP = [
     ['enablePixelation', 1], // Boolean to 1/0
     ['zoomLevel', 100],
     ['centerOffsetX', 100], 
-    ['centerOffsetY', 100]
+    ['centerOffsetY', 100],
+    ['midtones', 100],
+    ['highlights', 100], 
+    ['shadows', 100],
+    ['colorBalance', 100]
 ];
 
 const MULTIPLIERS = {
@@ -148,7 +152,11 @@ class Controls {
             { id: 'lacunarity' },
             { id: 'domainWarp' },
             { id: 'pixelSize' },
-            { id: 'pixelAspect' }
+            { id: 'pixelAspect' },
+            { id: 'midtones' },
+            { id: 'shadows' },
+            { id: 'highlights' },
+            { id: 'colorBalance' }
         ];
 
         displayConfigs.forEach(config => {
