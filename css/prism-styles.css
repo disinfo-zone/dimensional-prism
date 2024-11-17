@@ -353,6 +353,29 @@ input[type="range"] {
     overflow-y: auto;
     box-shadow: 2px 0 20px rgba(0, 255, 255, 0.1);
     z-index: 999;
+    direction: rtl;
+}
+
+#audioControls::-webkit-scrollbar {
+    width: 8px;
+}
+
+#audioControls::-webkit-scrollbar-track {
+    background: rgba(0, 20, 25, 0.3);
+}
+
+#audioControls::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+#audioControls > * {
+    direction: ltr; /* Reset direction for content */
+}
+
+#audioControls h2 {
+    text-align: right;
+    margin-top: 8px;
 }
 
 #audioControls.visible {
@@ -386,16 +409,21 @@ input[type="range"] {
 }
 
 .play-button {
-    width: 100%;
-    background: rgba(0, 20, 25, 0.5);
+    width: calc(100% - 32px);
+    background: rgba(0, 20, 25, 0.8);
     color: var(--accent);
     border: 1px solid var(--border);
-    padding: 8px;
+    padding: 12px;
     border-radius: 4px;
     font-family: "Courier New", monospace;
     cursor: pointer;
     transition: all 0.2s;
-    margin-top: 12px;
+    position: relative;
+    margin: 20px 16px;
+    z-index: 2;
+    font-size: 16px;
+    height: 48px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
 }
 
 .play-button:hover {
@@ -498,5 +526,68 @@ input[type="range"] {
         bottom: 50px;
         left: 12px;
         font-size: 10px;
+    }
+
+    #audioControls {
+        width: 70%;
+        padding: 16px;
+        background: rgba(25, 36, 39, 0.4);
+        backdrop-filter: blur(4px);
+        padding-bottom: 16px;
+    }
+
+    #audioControls .control-group {
+        margin-bottom: 16px;
+        padding: 12px;
+    }
+
+    #audioControls select {
+        height: 40px;
+        font-size: 14px;
+    }
+
+    /* Increase touch targets */
+    #audioControls input[type="range"] {
+        height: 6px;
+        margin: 16px 0;
+    }
+
+    #audioControls input[type="range"]::-webkit-slider-thumb {
+        width: 24px;
+        height: 24px;
+    }
+
+    #audioControls input[type="checkbox"] {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Improve label readability */
+    #audioControls label {
+        font-size: 14px;
+        margin: 16px 0;
+        line-height: 1.4;
+    }
+
+    #audioControls::-webkit-scrollbar {
+        width: 8px; /* Keep consistent width on mobile */
+    }
+    
+    #audioControls::-webkit-scrollbar-thumb {
+        background: var(--accent);
+        border-radius: 4px;
+    }
+
+    .play-button {
+        height: 48px;
+        font-size: 16px;
+        margin: 20px 0;
+        margin-bottom: 100px;
+        background: rgba(0, 20, 25, 0.8); /* Darker background for better contrast */
+        bottom: 20px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Add depth */
+        width: calc(100% - 24px); /* Account for padding */
+        margin-left: 12px;
+        margin-right: 12px;
     }
 }

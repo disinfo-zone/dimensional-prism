@@ -20,7 +20,7 @@
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <button id="toggleAudio">🎵</button>
+    <button id="toggleAudio">⏦</button>
     <div id="audioControls">
         <h2>Binaural Beats</h2>
         <div class="control-group">
@@ -56,6 +56,34 @@
                 <label>Volume <span class="value-display" id="volumeValue">-12</span>
                     <input type="range" id="volume" min="-40" max="0" step="1" value="-12">
                 </label>
+        </div>
+        <div class="control-group">
+            <h3>Harmonics</h3>
+            <label>Enable Harmonics
+                <input type="checkbox" id="enableHarmonics">
+            </label>
+            <div id="harmonicControls" style="display: none;">
+                <label>2nd Harmonic (Octave)
+                    <input type="checkbox" id="harmonic2" class="harmonic-toggle">
+                    <span class="value-display" id="harmonic2Value">0%</span>
+                    <input type="range" class="harmonic-level" id="harmonic2Level" min="0" max="100" value="50">
+                </label>
+                <label>3rd Harmonic (Perfect Fifth + Octave)
+                    <input type="checkbox" id="harmonic3" class="harmonic-toggle">
+                    <span class="value-display" id="harmonic3Value">0%</span>
+                    <input type="range" class="harmonic-level" id="harmonic3Level" min="0" max="100" value="30">
+                </label>
+                <label>4th Harmonic (2nd Octave)
+                    <input type="checkbox" id="harmonic4" class="harmonic-toggle">
+                    <span class="value-display" id="harmonic4Value">0%</span>
+                    <input type="range" class="harmonic-level" id="harmonic4Level" min="0" max="100" value="20">
+                </label>
+                <label>5th Harmonic (Major Third + 2nd Octave)
+                    <input type="checkbox" id="harmonic5" class="harmonic-toggle">
+                    <span class="value-display" id="harmonic5Value">0%</span>
+                    <input type="range" class="harmonic-level" id="harmonic5Level" min="0" max="100" value="10">
+                </label>
+            </div>
         </div>
         <div class="control-group">
             <h3>Enhancement</h3>
