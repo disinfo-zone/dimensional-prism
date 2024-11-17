@@ -166,50 +166,100 @@ vec3 getPaletteColor(float t) {
     vec3 color;
     float s = 1.0; // Use full saturation for initial color generation
             
-    if (colorPalette == 0) { // Rainbow Flow
-        color = hsv2rgb(vec3(t, s, 1.0));
+    if (colorPalette == 0) { // Prismatic Flow
+        // A refined rainbow with better perceptual balance
+        vec3 c1 = hsv2rgb(vec3(t, s, 1.0));
+        vec3 c2 = hsv2rgb(vec3(fract(t + 0.15), s * 0.95, 0.98));
+        color = mix(c1, c2, sin(t * PI * 2.0) * 0.5 + 0.5);
     }
-    else if (colorPalette == 1) { // Cosmos
-        vec3 c1 = hsv2rgb(vec3(0.72 + hueOffset, s, 1.0)); // Deep purple
-        vec3 c2 = hsv2rgb(vec3(0.65 + hueOffset, s, 1.0)); // Rich blue
-        vec3 c3 = hsv2rgb(vec3(0.58 + hueOffset, s, 0.9)); // Bright blue
-        color = mix(mix(c1, c2, t), c3, sin(t * PI * 1.5));
+    else if (colorPalette == 1) { // Solar Winds (complementary)
+        vec3 c1 = hsv2rgb(vec3(0.12 + hueOffset, s, 1.0));     // Warm gold
+        vec3 c2 = hsv2rgb(vec3(0.62 + hueOffset, s * 0.9, 0.95)); // Azure blue
+        color = mix(c1, c2, sin(t * PI * 1.2));
     }
-    else if (colorPalette == 2) { // Forest
-        vec3 c1 = hsv2rgb(vec3(0.25 + hueOffset, s, 0.9)); // Rich green
-        vec3 c2 = hsv2rgb(vec3(0.32 + hueOffset, s * 0.9, 0.8)); // Moss
-        vec3 c3 = hsv2rgb(vec3(0.12 + hueOffset, s * 0.8, 0.9)); // Golden
-        color = mix(mix(c1, c2, t), c3, sin(t * PI * 0.8));
+    else if (colorPalette == 2) { // Ethereal Mist (analogous)
+        vec3 c1 = hsv2rgb(vec3(0.45 + hueOffset, s * 0.9, 1.0));  // Aqua
+        vec3 c2 = hsv2rgb(vec3(0.55 + hueOffset, s * 0.85, 0.95)); // Sky blue
+        color = mix(c1, c2, sin(t * PI * 0.8));
     }
-    else if (colorPalette == 3) { // Ocean
-        vec3 c1 = hsv2rgb(vec3(0.5 + hueOffset, s, 0.9)); // Deep teal
-        vec3 c2 = hsv2rgb(vec3(0.55 + hueOffset, s * 0.9, 1.0)); // Bright aqua
-        vec3 c3 = hsv2rgb(vec3(0.48 + hueOffset, s * 0.95, 0.85)); // Sea blue
-        color = mix(mix(c1, c2, t), c3, sin(t * PI * 1.2));
+    else if (colorPalette == 3) { // Terra Nova (triadic)
+        vec3 c1 = hsv2rgb(vec3(0.0 + hueOffset, s, 1.0));      // Primary
+        vec3 c2 = hsv2rgb(vec3(0.33 + hueOffset, s * 0.9, 0.95)); // +120°
+        vec3 c3 = hsv2rgb(vec3(0.66 + hueOffset, s * 0.95, 0.9));  // +240°
+        vec3 mix1 = mix(c1, c2, t);
+        color = mix(mix1, c3, sin(t * PI));
     }
-    else if (colorPalette == 4) { // Sunset
-        vec3 c1 = hsv2rgb(vec3(0.05 + hueOffset, s, 1.0)); // Orange
-        vec3 c2 = hsv2rgb(vec3(0.95 + hueOffset, s * 0.9, 0.9)); // Pink
-        vec3 c3 = hsv2rgb(vec3(0.75 + hueOffset, s * 0.85, 0.8)); // Purple
-        color = mix(mix(c1, c2, t), c3, sin(t * PI * 0.7));
+    else if (colorPalette == 4) { // Quantum Flux (split complementary)
+        vec3 c1 = hsv2rgb(vec3(0.5 + hueOffset, s, 1.0));      // Base
+        vec3 c2 = hsv2rgb(vec3(0.92 + hueOffset, s * 0.9, 0.95)); // Split 1
+        vec3 c3 = hsv2rgb(vec3(0.08 + hueOffset, s * 0.95, 0.9));  // Split 2
+        vec3 mix1 = mix(c1, c2, t);
+        color = mix(mix1, c3, sin(t * PI * 1.5));
     }
-    else if (colorPalette == 5) { // Northern Lights
-        vec3 c1 = hsv2rgb(vec3(0.35 + hueOffset, s * 0.9, 1.0)); // Ethereal green
-        vec3 c2 = hsv2rgb(vec3(0.45 + hueOffset, s * 0.8, 0.9)); // Cyan
-        vec3 c3 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.85, 0.95)); // Blue
-        color = mix(mix(c1, c2, t), c3, sin(t * PI * 2.0));
+    else if (colorPalette == 5) { // Astral Dream (tetradic)
+        vec3 c1 = hsv2rgb(vec3(0.0 + hueOffset, s, 1.0));      // Base
+        vec3 c2 = hsv2rgb(vec3(0.25 + hueOffset, s * 0.9, 0.95)); // +90°
+        vec3 c3 = hsv2rgb(vec3(0.5 + hueOffset, s * 0.95, 0.9));  // +180°
+        vec3 c4 = hsv2rgb(vec3(0.75 + hueOffset, s * 0.85, 0.95)); // +270°
+        vec3 mix1 = mix(c1, c2, t);
+        vec3 mix2 = mix(c3, c4, t);
+        color = mix(mix1, mix2, sin(t * PI * 1.3));
     }
-    else if (colorPalette == 6) { // Crystal
-        vec3 c1 = hsv2rgb(vec3(0.5 + hueOffset, s * 0.3, 1.0)); // Ice blue
-        vec3 c2 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.2, 0.95)); // Pale cyan
-        vec3 c3 = hsv2rgb(vec3(0.45 + hueOffset, s * 0.4, 0.9)); // Cool blue
-        color = mix(mix(c1, c2, t), c3, sin(t * PI * 1.3));
+    else if (colorPalette == 6) { // Lunar Phase (monochromatic)
+        vec3 c1 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.2, 1.0));    // Light
+        vec3 c2 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.4, 0.8));    // Medium
+        vec3 c3 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.6, 0.6));    // Dark
+        vec3 mix1 = mix(c1, c2, t);
+        color = mix(mix1, c3, sin(t * PI));
     }
-    else { // Sacred Flame
-        vec3 c1 = hsv2rgb(vec3(0.02 + hueOffset, s, 1.0)); // Bright red-orange
-        vec3 c2 = hsv2rgb(vec3(0.05 + hueOffset, s * 0.95, 0.95)); // Orange
-        vec3 c3 = hsv2rgb(vec3(0.08 + hueOffset, s * 0.9, 0.9)); // Gold
-        color = mix(mix(c1, c2, t), c3, sin(t * PI * 1.1));
+    else if (colorPalette == 7) { // lasma Core (analogous with complement)
+        vec3 c1 = hsv2rgb(vec3(0.95 + hueOffset, s, 1.0));     // Main
+        vec3 c2 = hsv2rgb(vec3(0.05 + hueOffset, s * 0.9, 0.95)); // Analogous 1
+        vec3 c3 = hsv2rgb(vec3(0.45 + hueOffset, s * 0.85, 0.9));  // Complement
+        vec3 mix1 = mix(c1, c2, t);
+        color = mix(mix1, c3, sin(t * PI * 0.7));
+    }
+    else if (colorPalette == 8) { // Jade Dynasty (split-analogous)
+        vec3 c1 = hsv2rgb(vec3(0.3 + hueOffset, s, 0.95));      // Base green
+        vec3 c2 = hsv2rgb(vec3(0.4 + hueOffset, s * 0.9, 0.9));  // Teal
+        vec3 c3 = hsv2rgb(vec3(0.2 + hueOffset, s * 0.85, 1.0)); // Yellow-green
+        vec3 c4 = hsv2rgb(vec3(0.5 + hueOffset, s * 0.7, 0.85)); // Blue accent
+        vec3 mix1 = mix(c1, c2, t);
+        vec3 mix2 = mix(c3, c4, t);
+        color = mix(mix1, mix2, sin(t * PI * 1.1));
+    }
+    else if (colorPalette == 9) { // Twilight Cascade (weighted complementary)
+        vec3 c1 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.9, 1.0));     // Main color
+        vec3 c2 = hsv2rgb(vec3(0.1 + hueOffset, s * 0.8, 0.9));     // Complement
+        vec3 c3 = hsv2rgb(vec3(0.65 + hueOffset, s * 0.7, 0.95));   // Near main
+        float weight = pow(sin(t * PI), 2.0);  // Weighted transition
+        color = mix(mix(c1, c3, t), c2, weight);
+    }
+    else if (colorPalette == 10) { // Arctic Aurora (dynamic monochromatic)
+        float base = 0.7 + hueOffset;
+        vec3 c1 = hsv2rgb(vec3(base, s * 0.9, 1.0));
+        vec3 c2 = hsv2rgb(vec3(fract(base + 0.05), s * 0.7, 0.9));
+        vec3 c3 = hsv2rgb(vec3(fract(base - 0.05), s * 0.5, 0.8));
+        float wave = sin(t * PI * 2.0) * 0.5 + 0.5;
+        color = mix(mix(c1, c2, t), c3, wave * wave);
+    }
+    else if (colorPalette == 11) { // Desert Mirage (compound tertiary)
+        vec3 c1 = hsv2rgb(vec3(0.08 + hueOffset, s * 0.9, 1.0));     // Golden
+        vec3 c2 = hsv2rgb(vec3(0.95 + hueOffset, s * 0.85, 0.9));    // Rose
+        vec3 c3 = hsv2rgb(vec3(0.45 + hueOffset, s * 0.8, 0.85));    // Aqua
+        vec3 c4 = hsv2rgb(vec3(0.2 + hueOffset, s * 0.75, 0.95));    // Spring
+        float complex = sin(t * PI * 2.0) * cos(t * PI * 1.5);
+        vec3 mix1 = mix(c1, c2, t);
+        vec3 mix2 = mix(c3, c4, t);
+        color = mix(mix1, mix2, complex * 0.5 + 0.5);
+    }
+    else { // Nebula Drift (spectral gradient)
+        float phase = fract(t * 0.5);
+        vec3 c1 = hsv2rgb(vec3(phase, s * 0.9, 1.0));
+        vec3 c2 = hsv2rgb(vec3(fract(phase + 0.1), s * 0.85, 0.9));
+        vec3 c3 = hsv2rgb(vec3(fract(phase + 0.2), s * 0.8, 0.85));
+        float wave = sin(t * PI * 3.0) * 0.5 + 0.5;
+        color = mix(mix(c1, c2, wave), c3, sin(t * PI));
     }
             
     // Apply tone mapping first
