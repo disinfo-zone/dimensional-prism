@@ -34,6 +34,10 @@ uniform float persistence;
 uniform float lacunarity;
 uniform float domainWarp;
 uniform float zoomLevel;
+uniform float midtones;
+uniform float highlights;
+uniform float shadows;
+uniform float colorBalance;
 
 const float PI = 3.14159265359;
 
@@ -139,147 +143,356 @@ vec3 hsv2rgb(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-vec3 reinhardToneMapping(vec3 color, float exposureEV) {
-    // Convert EV to linear multiplier
-    float exposure = pow(2.0, exposureEV);
+// RGB to XYZ conversion matrix
+const mat3 RGB_2_XYZ = mat3(
+    0.4124564, 0.3575761, 0.1804375,
+    0.2126729, 0.7151522, 0.0721750,
+    0.0193339, 0.1191920, 0.9503041
+);
+
+// XYZ to RGB conversion matrix  
+const mat3 XYZ_2_RGB = mat3(
+    3.2404542, -1.5371385, -0.4985314,
+    -0.9692660,  1.8760108,  0.0415560,
+    0.0556434, -0.2040259,  1.0572252
+);
+
+// Color space conversion helpers
+vec3 rgb2linear(vec3 rgb) {
+    return pow(max(rgb, 0.0), vec3(2.2));
+}
+
+vec3 linear2rgb(vec3 rgb) {
+    return pow(max(rgb, 0.0), vec3(1.0/2.2));
+}
+
+// XYZ to LAB conversion
+vec3 xyz2lab(vec3 xyz) {
+    // D65 white point reference
+    const vec3 white = vec3(0.95047, 1.0, 1.08883);
+    vec3 v = xyz / white;
+    
+    v = mix(pow(v, vec3(1.0/3.0)), 
+            7.787037 * v + vec3(0.137931),
+            step(v, vec3(0.008856)));
             
-    // Apply exposure while preserving hue ratios
-    color *= exposure;
-            
-    // Calculate luminance using perceptual weights
+    return vec3(116.0 * v.y - 16.0,
+                500.0 * (v.x - v.y),
+                200.0 * (v.y - v.z));
+}
+
+// LAB to LCH conversion
+vec3 lab2lch(vec3 lab) {
+    // Use .y and .z instead of .a and .b for the second and third components
+    float h = atan(lab.z, lab.y);
+    h = h < 0.0 ? h + 2.0 * PI : h;
+    return vec3(
+        lab.x, // L
+        sqrt(lab.y * lab.y + lab.z * lab.z), // C 
+        h * 180.0 / PI // H in degrees
+    );
+}
+
+// LCH to LAB conversion
+vec3 lch2lab(vec3 lch) {
+    float h = lch.z * PI / 180.0;
+    return vec3(
+        lch.x,
+        lch.y * cos(h),
+        lch.y * sin(h)
+    );
+}
+
+// Perceptual sigmoid function for contrast
+float sigmoid(float x, float contrast) {
+    float midpoint = 0.18; // middle gray
+    float slope = contrast * 2.0;
+    return 1.0 / (1.0 + exp(-slope * (x - midpoint)));
+}
+
+// ACES tone mapping
+vec3 acesToneMapping(vec3 color) {
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
+}
+
+vec3 ACESFilm(vec3 x) {
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
+vec3 adjustSMH(vec3 color, float shadows, float midtones, float highlights) {
+    // Convert values from -100,100 range to proper multipliers
+    float shadowsMult = 1.0 + (shadows / 100.0);
+    float midtonesMult = 1.0 + (midtones / 100.0);
+    float highlightsMult = 1.0 + (highlights / 100.0);
+    
+    // Calculate luminance
+    float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    
+    // Apply adjustments based on luminance ranges
+    vec3 adjusted = color;
+    
+    // Shadows (dark areas)
+    adjusted = mix(adjusted, adjusted * shadowsMult, smoothstep(0.0, 0.5, 1.0 - luma));
+    
+    // Midtones (middle range)
+    float midtoneMask = 1.0 - abs(luma - 0.5) * 2.0;
+    adjusted = mix(adjusted, adjusted * midtonesMult, midtoneMask);
+    
+    // Highlights (bright areas)
+    adjusted = mix(adjusted, adjusted * highlightsMult, smoothstep(0.5, 1.0, luma));
+    
+    return adjusted;
+}
+
+// LAB to XYZ conversion
+vec3 lab2xyz(vec3 lab) {
+    const vec3 white = vec3(0.95047, 1.0, 1.08883);
+    float fy = (lab.x + 16.0) / 116.0;
+    float fx = lab.y / 500.0 + fy;
+    float fz = fy - lab.z / 200.0;
+    
+    vec3 f = vec3(fx, fy, fz);
+    vec3 f3 = f * f * f;
+    vec3 t = step(vec3(0.008856), f3);
+    
+    return white * mix(
+        (f - vec3(16.0/116.0)) / 7.787037,
+        f3,
+        t
+    );
+}
+
+// Color space compression for HDR 
+vec3 compressHDR(vec3 color) {
     float L = dot(color, vec3(0.2126, 0.7152, 0.0722));
-            
-    // Reinhard operator with improved highlight handling
-    float Lwhite = 4.0; // White point
-    L = (L * (1.0 + L/(Lwhite*Lwhite)))/(1.0 + L);
-            
-    // Preserve color ratios while applying tone mapping
-    return color * (L / max(dot(color, vec3(0.2126, 0.7152, 0.0722)), 0.001));
+    return color * (1.0 + L)/(1.0 + L * L);
+}
+
+// Inverse compression
+vec3 expandHDR(vec3 color) {
+    float L = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    return color / ((1.0 + L)/(1.0 + L * L));
+}
+
+vec3 reinhardToneMapping(vec3 color, float exposureOffset) {
+    // More aggressive highlight compression
+    float L = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    float Lwhite = 2.0; // Lower white point for more contrast
+    
+    float toneMappedLuma = (L * (1.0 + L/(Lwhite*Lwhite)))/(1.0 + L);
+    return color * (toneMappedLuma / max(L, 0.001));
+}
+
+
+// Color harmony constants
+const int HARMONY_SPECTRAL = 0;       // Rainbow/spectrum
+const int HARMONY_COMPLEMENTARY = 1;   // 180° apart
+const int HARMONY_ANALOGOUS = 2;       // Adjacent colors
+const int HARMONY_TRIADIC = 3;         // 120° apart
+const int HARMONY_SPLIT_COMPLEMENTARY = 4; // Base + 2 colors adjacent to complement
+const int HARMONY_TETRADIC = 5;        // Double complementary
+const int HARMONY_MONOCHROMATIC = 6;   // Single hue variations
+const int HARMONY_ANALOGOUS_COMPLEMENT = 7; // Analogous + complement
+const int HARMONY_SPLIT_ANALOGOUS = 8;  // Analogous with split
+const int HARMONY_WEIGHTED_COMPLEMENT = 9; // Weighted complementary transition
+const int HARMONY_DYNAMIC_MONO = 10;    // Dynamic monochromatic
+const int HARMONY_COMPOUND_TERTIARY = 11; // Compound with tertiary colors
+const int HARMONY_GRADIENT_SPECTRAL = 12; // Continuous spectral gradient
+
+struct PaletteInfo {
+    vec3 color1;
+    vec3 color2;
+    vec3 color3;
+    vec3 color4;
+    float blendMode;
+};
+
+PaletteInfo getPaletteInfo(int harmony, float t, float s) {
+    PaletteInfo info;
+    float hueOffset = hueShift / 360.0;
+    
+    if (harmony == HARMONY_SPECTRAL) { // Prismatic Flow
+        info.color1 = vec3(t, s, 1.0);
+        info.color2 = vec3(fract(t + 0.15), s * 0.95, 0.98);
+        info.blendMode = 0.0; // dual blend
+    }
+    else if (harmony == HARMONY_COMPLEMENTARY) { // Solar Winds
+        info.color1 = vec3(0.12 + hueOffset, s, 1.0);      // Warm gold
+        info.color2 = vec3(0.62 + hueOffset, s * 0.9, 0.95); // Azure blue
+        info.blendMode = 0.0;
+    }
+    else if (harmony == HARMONY_ANALOGOUS) { // Ethereal Mist
+        info.color1 = vec3(0.45 + hueOffset, s * 0.9, 1.0);   // Aqua
+        info.color2 = vec3(0.55 + hueOffset, s * 0.85, 0.95); // Sky blue
+        info.blendMode = 0.0;
+    }
+    else if (harmony == HARMONY_TRIADIC) { // Terra Nova
+        info.color1 = vec3(0.0 + hueOffset, s, 1.0);       // Primary
+        info.color2 = vec3(0.33 + hueOffset, s * 0.9, 0.95); // +120°
+        info.color3 = vec3(0.66 + hueOffset, s * 0.95, 0.9); // +240°
+        info.blendMode = 1.0; // triple blend
+    }
+    else if (harmony == HARMONY_SPLIT_COMPLEMENTARY) { // Quantum Flux
+        info.color1 = vec3(0.5 + hueOffset, s, 1.0);       // Base
+        info.color2 = vec3(0.92 + hueOffset, s * 0.9, 0.95); // Split 1
+        info.color3 = vec3(0.08 + hueOffset, s * 0.95, 0.9); // Split 2
+        info.blendMode = 1.0;
+    }
+    else if (harmony == HARMONY_TETRADIC) { // Astral Dream
+        info.color1 = vec3(0.0 + hueOffset, s, 1.0);       // Base
+        info.color2 = vec3(0.25 + hueOffset, s * 0.9, 0.95); // +90°
+        info.color3 = vec3(0.5 + hueOffset, s * 0.95, 0.9);  // +180°
+        info.color4 = vec3(0.75 + hueOffset, s * 0.85, 0.95); // +270°
+        info.blendMode = 2.0; // quad blend
+    }
+    else if (harmony == HARMONY_MONOCHROMATIC) { // Lunar Phase
+        info.color1 = vec3(0.6 + hueOffset, s * 0.2, 1.0);    // Light
+        info.color2 = vec3(0.6 + hueOffset, s * 0.4, 0.8);    // Medium
+        info.color3 = vec3(0.6 + hueOffset, s * 0.6, 0.6);    // Dark
+        info.blendMode = 1.0;
+    }
+    else if (harmony == HARMONY_ANALOGOUS_COMPLEMENT) { // Plasma Core
+        info.color1 = vec3(0.95 + hueOffset, s, 1.0);         // Main
+        info.color2 = vec3(0.05 + hueOffset, s * 0.9, 0.95);  // Analogous 1
+        info.color3 = vec3(0.45 + hueOffset, s * 0.85, 0.9);  // Complement
+        info.blendMode = 1.0;
+    }
+    else if (harmony == HARMONY_SPLIT_ANALOGOUS) { // Jade Dynasty
+        info.color1 = vec3(0.3 + hueOffset, s, 0.95);       // Base green
+        info.color2 = vec3(0.4 + hueOffset, s * 0.9, 0.9);  // Teal
+        info.color3 = vec3(0.2 + hueOffset, s * 0.85, 1.0); // Yellow-green
+        info.color4 = vec3(0.5 + hueOffset, s * 0.7, 0.85); // Blue accent
+        info.blendMode = 2.0;
+    }
+    else if (harmony == HARMONY_WEIGHTED_COMPLEMENT) { // Twilight Cascade
+        info.color1 = vec3(0.6 + hueOffset, s * 0.9, 1.0);   // Main
+        info.color2 = vec3(0.1 + hueOffset, s * 0.8, 0.9);   // Complement
+        info.color3 = vec3(0.65 + hueOffset, s * 0.7, 0.95); // Near main
+        info.blendMode = 1.0;
+    }
+    else if (harmony == HARMONY_DYNAMIC_MONO) { // Arctic Aurora
+        float base = 0.7 + hueOffset;
+        info.color1 = vec3(base, s * 0.9, 1.0);
+        info.color2 = vec3(fract(base + 0.05), s * 0.7, 0.9);
+        info.color3 = vec3(fract(base - 0.05), s * 0.5, 0.8);
+        info.blendMode = 1.0;
+    }
+    else if (harmony == HARMONY_COMPOUND_TERTIARY) { // Desert Mirage
+        info.color1 = vec3(0.08 + hueOffset, s * 0.9, 1.0);  // Golden
+        info.color2 = vec3(0.95 + hueOffset, s * 0.85, 0.9); // Rose
+        info.color3 = vec3(0.45 + hueOffset, s * 0.8, 0.85); // Aqua
+        info.color4 = vec3(0.2 + hueOffset, s * 0.75, 0.95); // Spring
+        info.blendMode = 2.0;
+    }
+    else if (harmony == HARMONY_GRADIENT_SPECTRAL) { // Nebula Drift
+        float phase = fract(t * 0.5);
+        info.color1 = vec3(phase, s * 0.9, 1.0);
+        info.color2 = vec3(fract(phase + 0.1), s * 0.85, 0.9);
+        info.color3 = vec3(fract(phase + 0.2), s * 0.8, 0.85);
+        info.blendMode = 1.0;
+    }
+    else { // Default fallback
+        info.color1 = vec3(t, s, 1.0);
+        info.color2 = vec3(fract(t + 0.5), s, 1.0);
+        info.color3 = vec3(0.0);
+        info.color4 = vec3(0.0);
+        info.blendMode = 0.0;
+    }
+    return info;
+}
+
+vec3 blendPaletteColors(PaletteInfo info, float t) {
+    vec3 c1 = hsv2rgb(info.color1);
+    vec3 c2 = hsv2rgb(info.color2);
+    
+    if (info.blendMode < 0.5) {
+        // Dual blend
+        return mix(c1, c2, sin(t * PI * 2.0) * 0.5 + 0.5);
+    } else if (info.blendMode < 1.5) {
+        // Triple blend
+        vec3 c3 = hsv2rgb(info.color3);
+        float phase = fract(t * 3.0);
+        if (phase < 0.333) {
+            return mix(c1, c2, phase * 3.0);
+        } else if (phase < 0.666) {
+            return mix(c2, c3, (phase - 0.333) * 3.0);
+        } else {
+            return mix(c3, c1, (phase - 0.666) * 3.0);
+        }
+    } else {
+        // Quad blend
+        vec3 c3 = hsv2rgb(info.color3);
+        vec3 c4 = hsv2rgb(info.color4);
+        float phase = fract(t * 4.0);
+        if (phase < 0.25) {
+            return mix(c1, c2, phase * 4.0);
+        } else if (phase < 0.5) {
+            return mix(c2, c3, (phase - 0.25) * 4.0);
+        } else if (phase < 0.75) {
+            return mix(c3, c4, (phase - 0.5) * 4.0);
+        } else {
+            return mix(c4, c1, (phase - 0.75) * 4.0);
+        }
+    }
 }
 
 vec3 getPaletteColor(float t) {
-    // First apply hue shift to the input parameter
-    float hueOffset = hueShift / 360.0;
-    t = fract(t + hueOffset); // Apply hue shift before any other color calculations
-            
-    // Generate full saturation color first
-    vec3 color;
-    float s = 1.0; // Use full saturation for initial color generation
-            
-    if (colorPalette == 0) { // Prismatic Flow
-        // A refined rainbow with better perceptual balance
-        vec3 c1 = hsv2rgb(vec3(t, s, 1.0));
-        vec3 c2 = hsv2rgb(vec3(fract(t + 0.15), s * 0.95, 0.98));
-        color = mix(c1, c2, sin(t * PI * 2.0) * 0.5 + 0.5);
+    t = fract(t);
+    
+    // Apply hue shift first at palette level
+    float globalHueShift = hueShift / 360.0;
+    // Pass full saturation to palette, we'll adjust it later
+    PaletteInfo info = getPaletteInfo(colorPalette, t + globalHueShift, 1.0);
+    vec3 color = blendPaletteColors(info, t);
+    
+    // Convert to linear space
+    vec3 linearRGB = rgb2linear(color);
+    
+    // Apply exposure
+    float exposureMult = pow(2.0, exposure - 0.5);
+    linearRGB *= exposureMult;
+    
+    // Contrast
+    if (contrast != 1.0) {
+        float midpoint = 0.18;
+        linearRGB = pow(linearRGB, vec3(contrast));
+        float midpointScale = pow(midpoint, contrast - 1.0);
+        linearRGB *= midpointScale;
     }
-    else if (colorPalette == 1) { // Solar Winds (complementary)
-        vec3 c1 = hsv2rgb(vec3(0.12 + hueOffset, s, 1.0));     // Warm gold
-        vec3 c2 = hsv2rgb(vec3(0.62 + hueOffset, s * 0.9, 0.95)); // Azure blue
-        color = mix(c1, c2, sin(t * PI * 1.2));
+    
+    // Color grading
+    linearRGB = adjustSMH(linearRGB, shadows, midtones, highlights);
+    
+    // Color balance
+    if (colorBalance != 0.0) {
+        float temp = colorBalance / 100.0;
+        vec3 warmth = vec3(
+            1.0 + max(temp, 0.0),
+            1.0,
+            1.0 + max(-temp, 0.0)
+        );
+        linearRGB *= warmth;
     }
-    else if (colorPalette == 2) { // Ethereal Mist (analogous)
-        vec3 c1 = hsv2rgb(vec3(0.45 + hueOffset, s * 0.9, 1.0));  // Aqua
-        vec3 c2 = hsv2rgb(vec3(0.55 + hueOffset, s * 0.85, 0.95)); // Sky blue
-        color = mix(c1, c2, sin(t * PI * 0.8));
-    }
-    else if (colorPalette == 3) { // Terra Nova (triadic)
-        vec3 c1 = hsv2rgb(vec3(0.0 + hueOffset, s, 1.0));      // Primary
-        vec3 c2 = hsv2rgb(vec3(0.33 + hueOffset, s * 0.9, 0.95)); // +120°
-        vec3 c3 = hsv2rgb(vec3(0.66 + hueOffset, s * 0.95, 0.9));  // +240°
-        vec3 mix1 = mix(c1, c2, t);
-        color = mix(mix1, c3, sin(t * PI));
-    }
-    else if (colorPalette == 4) { // Quantum Flux (split complementary)
-        vec3 c1 = hsv2rgb(vec3(0.5 + hueOffset, s, 1.0));      // Base
-        vec3 c2 = hsv2rgb(vec3(0.92 + hueOffset, s * 0.9, 0.95)); // Split 1
-        vec3 c3 = hsv2rgb(vec3(0.08 + hueOffset, s * 0.95, 0.9));  // Split 2
-        vec3 mix1 = mix(c1, c2, t);
-        color = mix(mix1, c3, sin(t * PI * 1.5));
-    }
-    else if (colorPalette == 5) { // Astral Dream (tetradic)
-        vec3 c1 = hsv2rgb(vec3(0.0 + hueOffset, s, 1.0));      // Base
-        vec3 c2 = hsv2rgb(vec3(0.25 + hueOffset, s * 0.9, 0.95)); // +90°
-        vec3 c3 = hsv2rgb(vec3(0.5 + hueOffset, s * 0.95, 0.9));  // +180°
-        vec3 c4 = hsv2rgb(vec3(0.75 + hueOffset, s * 0.85, 0.95)); // +270°
-        vec3 mix1 = mix(c1, c2, t);
-        vec3 mix2 = mix(c3, c4, t);
-        color = mix(mix1, mix2, sin(t * PI * 1.3));
-    }
-    else if (colorPalette == 6) { // Lunar Phase (monochromatic)
-        vec3 c1 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.2, 1.0));    // Light
-        vec3 c2 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.4, 0.8));    // Medium
-        vec3 c3 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.6, 0.6));    // Dark
-        vec3 mix1 = mix(c1, c2, t);
-        color = mix(mix1, c3, sin(t * PI));
-    }
-    else if (colorPalette == 7) { // lasma Core (analogous with complement)
-        vec3 c1 = hsv2rgb(vec3(0.95 + hueOffset, s, 1.0));     // Main
-        vec3 c2 = hsv2rgb(vec3(0.05 + hueOffset, s * 0.9, 0.95)); // Analogous 1
-        vec3 c3 = hsv2rgb(vec3(0.45 + hueOffset, s * 0.85, 0.9));  // Complement
-        vec3 mix1 = mix(c1, c2, t);
-        color = mix(mix1, c3, sin(t * PI * 0.7));
-    }
-    else if (colorPalette == 8) { // Jade Dynasty (split-analogous)
-        vec3 c1 = hsv2rgb(vec3(0.3 + hueOffset, s, 0.95));      // Base green
-        vec3 c2 = hsv2rgb(vec3(0.4 + hueOffset, s * 0.9, 0.9));  // Teal
-        vec3 c3 = hsv2rgb(vec3(0.2 + hueOffset, s * 0.85, 1.0)); // Yellow-green
-        vec3 c4 = hsv2rgb(vec3(0.5 + hueOffset, s * 0.7, 0.85)); // Blue accent
-        vec3 mix1 = mix(c1, c2, t);
-        vec3 mix2 = mix(c3, c4, t);
-        color = mix(mix1, mix2, sin(t * PI * 1.1));
-    }
-    else if (colorPalette == 9) { // Twilight Cascade (weighted complementary)
-        vec3 c1 = hsv2rgb(vec3(0.6 + hueOffset, s * 0.9, 1.0));     // Main color
-        vec3 c2 = hsv2rgb(vec3(0.1 + hueOffset, s * 0.8, 0.9));     // Complement
-        vec3 c3 = hsv2rgb(vec3(0.65 + hueOffset, s * 0.7, 0.95));   // Near main
-        float weight = pow(sin(t * PI), 2.0);  // Weighted transition
-        color = mix(mix(c1, c3, t), c2, weight);
-    }
-    else if (colorPalette == 10) { // Arctic Aurora (dynamic monochromatic)
-        float base = 0.7 + hueOffset;
-        vec3 c1 = hsv2rgb(vec3(base, s * 0.9, 1.0));
-        vec3 c2 = hsv2rgb(vec3(fract(base + 0.05), s * 0.7, 0.9));
-        vec3 c3 = hsv2rgb(vec3(fract(base - 0.05), s * 0.5, 0.8));
-        float wave = sin(t * PI * 2.0) * 0.5 + 0.5;
-        color = mix(mix(c1, c2, t), c3, wave * wave);
-    }
-    else if (colorPalette == 11) { // Desert Mirage (compound tertiary)
-        vec3 c1 = hsv2rgb(vec3(0.08 + hueOffset, s * 0.9, 1.0));     // Golden
-        vec3 c2 = hsv2rgb(vec3(0.95 + hueOffset, s * 0.85, 0.9));    // Rose
-        vec3 c3 = hsv2rgb(vec3(0.45 + hueOffset, s * 0.8, 0.85));    // Aqua
-        vec3 c4 = hsv2rgb(vec3(0.2 + hueOffset, s * 0.75, 0.95));    // Spring
-        float complex = sin(t * PI * 2.0) * cos(t * PI * 1.5);
-        vec3 mix1 = mix(c1, c2, t);
-        vec3 mix2 = mix(c3, c4, t);
-        color = mix(mix1, mix2, complex * 0.5 + 0.5);
-    }
-    else { // Nebula Drift (spectral gradient)
-        float phase = fract(t * 0.5);
-        vec3 c1 = hsv2rgb(vec3(phase, s * 0.9, 1.0));
-        vec3 c2 = hsv2rgb(vec3(fract(phase + 0.1), s * 0.85, 0.9));
-        vec3 c3 = hsv2rgb(vec3(fract(phase + 0.2), s * 0.8, 0.85));
-        float wave = sin(t * PI * 3.0) * 0.5 + 0.5;
-        color = mix(mix(c1, c2, wave), c3, sin(t * PI));
-    }
-            
-    // Apply tone mapping first
-    color = reinhardToneMapping(color, exposure);
-            
-    // Calculate luminance for true grayscale
-    float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-    vec3 grayscale = vec3(luminance);
-            
-    // Apply saturation
-    float sat = saturation / 100.0;
-    sat = pow(sat, 1.2);
-    vec3 saturatedColor = mix(grayscale, color, sat);
-            
-    // Apply contrast as final step using proper gamma curve
-    float cont = pow(2.0, contrast);
-    vec3 finalColor = pow(saturatedColor, vec3(cont));
-            
-    // Ensure colors stay in valid range
-    return clamp(finalColor, 0.0, 1.0);
+    
+    // ACES
+    vec3 tonemapped = ACESFilm(linearRGB);
+    
+    // Convert back to sRGB
+    vec3 sRGB = linear2rgb(tonemapped);
+    
+    // Apply saturation last (in sRGB space)
+    float luma = dot(sRGB, vec3(0.2126, 0.7152, 0.0722));
+    return mix(vec3(luma), sRGB, saturation / 100.0);
 }
 
 vec2 pixelate(vec2 uv) {
@@ -430,6 +643,32 @@ void main() {
     pattern *= size;
             
     vec3 color = getPaletteColor(pattern * 0.5 + time * colorSpeed);
+    
+    // Convert to linear space for adjustments
+    color = rgb2linear(color);
+    
+    // Apply SMH adjustments in linear space
+    color = adjustSMH(color, shadows, midtones, highlights);
+    
+    // Apply color balance in linear space
+    float balanceMult = colorBalance / 100.0;
+    vec3 warmTint = vec3(
+        1.0 + max(balanceMult, 0.0),
+        1.0,
+        1.0 + max(-balanceMult, 0.0)
+    );
+    color *= warmTint;
+    
+    // Convert back to sRGB for saturation
+    color = linear2rgb(color);
+    
+    // Apply saturation last in sRGB space
+    float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    color = mix(vec3(luma), color, saturation / 100.0);
+    
+    // Final clamp
+    color = clamp(color, 0.0, 1.0);
+    
     gl_FragColor = vec4(color, 1.0);
 }
 `;

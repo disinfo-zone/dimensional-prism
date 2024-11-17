@@ -188,15 +188,30 @@
             <label>Hue Shift <span class="value-display" id="hueShiftValue">0°</span>
                 <input type="range" id="hueShift" min="0" max="360" step="1" value="0">
             </label>
-            <label>Saturation <span class="value-display" id="saturationValue">50%</span>
-                <input type="range" id="saturation" min="0" max="100" step="1" value="85">
-            </label>
             <label>Exposure <span class="value-display" id="exposureValue">0.0 EV</span>
-                <input type="range" id="exposure" min="-3" max="3" step="0.1" value="1">
+                <input type="range" id="exposure" min="-4" max="4" step="0.1" value="0">
             </label>
-            <label>Contrast <span class="value-display" id="contrastValue">0.0</span>
-                <input type="range" id="contrast" min="-3" max="5" step="0.1" value="0.3">
+            <label>Contrast <span class="value-display" id="contrastValue">1.0</span>
+                <input type="range" id="contrast" min="0.1" max="3.0" step="0.1" value="1.0">
             </label>
+            <label>Saturation <span class="value-display" id="saturationValue">100%</span>
+                <input type="range" id="saturation" min="0" max="200" step="1" value="100">
+            </label>
+            <div class="control-group">
+                <h3>Advanced Color</h3>
+                <label>Midtones <span class="value-display" id="midtonesValue">0.0</span>
+                    <input type="range" id="midtones" min="-100" max="100" step="1" value="0">
+                </label>
+                <label>Highlights <span class="value-display" id="highlightsValue">0.0</span>
+                    <input type="range" id="highlights" min="-100" max="100" step="1" value="0">
+                </label>
+                <label>Shadows <span class="value-display" id="shadowsValue">0.0</span>
+                    <input type="range" id="shadows" min="-100" max="100" step="1" value="0">
+                </label>
+                <label>Color Balance <span class="value-display" id="colorBalanceValue">0.0</span>
+                    <input type="range" id="colorBalance" min="-100" max="100" step="1" value="0">
+                </label>
+            </div>
         </div>
         <div class="control-group">
             <h3>Noise Configuration</h3>

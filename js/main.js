@@ -123,7 +123,11 @@ class Renderer {
             persistence: gl.getUniformLocation(this.program, 'persistence'),
             lacunarity: gl.getUniformLocation(this.program, 'lacunarity'),
             domainWarp: gl.getUniformLocation(this.program, 'domainWarp'),
-            zoomLevel: gl.getUniformLocation(this.program, 'zoomLevel')
+            zoomLevel: gl.getUniformLocation(this.program, 'zoomLevel'),
+            midtones: gl.getUniformLocation(this.program, 'midtones'),
+            shadows: gl.getUniformLocation(this.program, 'shadows'),
+            highlights: gl.getUniformLocation(this.program, 'highlights'),
+            colorBalance: gl.getUniformLocation(this.program, 'colorBalance')
         };
     }
 
@@ -131,55 +135,81 @@ class Renderer {
         const shader = this.gl.createShader(type);
         this.gl.shaderSource(shader, source);
         this.gl.compileShader(shader);
+    
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.error('An error occurred compiling the shader:', this.gl.getShaderInfoLog(shader));
+            this.gl.deleteShader(shader);
+            return null;
+        }
+    
         return shader;
     }
 
     startRenderLoop() {
+        const getInputValue = (id, defaultValue) => {
+            const element = document.getElementById(id);
+            return element ? parseFloat(element.value) : defaultValue;
+        };
+    
+        const getSelectValue = (id, defaultValue) => {
+            const element = document.getElementById(id);
+            return element ? parseInt(element.value) : defaultValue;
+        };
+    
+        const getCheckboxValue = (id, defaultValue) => {
+            const element = document.getElementById(id);
+            return element ? element.checked : defaultValue;
+        };
+    
         const render = (time) => {
             time *= 0.001; // Convert to seconds
             const gl = this.gl;
             
-            // Update uniforms
+            // Update uniforms with safe value retrieval
             gl.uniform2f(this.uniforms.centerPoint, 
-                (parseFloat(document.getElementById('centerX').value) + camera.centerOffset.x) / camera.zoomLevel,
-                (parseFloat(document.getElementById('centerY').value) + camera.centerOffset.y) / camera.zoomLevel
+                (getInputValue('centerX', 0) + camera.centerOffset.x) / camera.zoomLevel,
+                (getInputValue('centerY', 0) + camera.centerOffset.y) / camera.zoomLevel
             );
             gl.uniform1f(this.uniforms.zoomLevel, camera.zoomLevel);
             gl.uniform1f(this.uniforms.time, time);
             gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
-            gl.uniform1f(this.uniforms.complexity, parseFloat(document.getElementById('complexity').value));
-            gl.uniform1f(this.uniforms.speed, parseFloat(document.getElementById('speed').value));
-            gl.uniform1f(this.uniforms.colorSpeed, parseFloat(document.getElementById('colorSpeed').value));
-            gl.uniform1f(this.uniforms.size, parseFloat(document.getElementById('size').value));
-            gl.uniform1f(this.uniforms.mirrorFolds, parseFloat(document.getElementById('mirrorFolds').value));
-            gl.uniform1f(this.uniforms.mirrorAngle, parseFloat(document.getElementById('mirrorAngle').value));
+            gl.uniform1f(this.uniforms.complexity, getInputValue('complexity', 20));
+            gl.uniform1f(this.uniforms.speed, getInputValue('speed', 0.2));
+            gl.uniform1f(this.uniforms.colorSpeed, getInputValue('colorSpeed', 0.3));
+            gl.uniform1f(this.uniforms.size, getInputValue('size', 20));
+            gl.uniform1f(this.uniforms.mirrorFolds, getInputValue('mirrorFolds', 6));
+            gl.uniform1f(this.uniforms.mirrorAngle, getInputValue('mirrorAngle', 0));
             
             // Color settings
-            gl.uniform1i(this.uniforms.colorPalette, document.getElementById('colorPalette').selectedIndex);
-            gl.uniform1f(this.uniforms.saturation, parseFloat(document.getElementById('saturation').value));
-            gl.uniform1f(this.uniforms.exposure, parseFloat(document.getElementById('exposure').value));
-            gl.uniform1f(this.uniforms.hueShift, parseFloat(document.getElementById('hueShift').value));
-            gl.uniform1f(this.uniforms.contrast, parseFloat(document.getElementById('contrast').value));
-
+            gl.uniform1i(this.uniforms.colorPalette, getSelectValue('colorPalette', 0));
+            gl.uniform1f(this.uniforms.saturation, getInputValue('saturation', 100));
+            gl.uniform1f(this.uniforms.exposure, getInputValue('exposure', 0));
+            gl.uniform1f(this.uniforms.hueShift, getInputValue('hueShift', 0));
+            gl.uniform1f(this.uniforms.contrast, getInputValue('contrast', 1.0));
+            gl.uniform1f(this.uniforms.midtones, getInputValue('midtones', 0));
+            gl.uniform1f(this.uniforms.shadows, getInputValue('shadows', 0));
+            gl.uniform1f(this.uniforms.highlights, getInputValue('highlights', 0));
+            gl.uniform1f(this.uniforms.colorBalance, getInputValue('colorBalance', 0));
+    
             // Mirror points
-            const mirrorPoints = controls.getMirrorPoints();
+            const mirrorPoints = controls?.getMirrorPoints() || [{x: 0, y: 0}];
             const mirrorPointsArray = new Float32Array(mirrorPoints.flatMap(p => [p.x, p.y]));
             gl.uniform2fv(this.uniforms.mirrorPoints, mirrorPointsArray);
             gl.uniform1i(this.uniforms.mirrorPointCount, mirrorPoints.length);
-
+    
             // Pixelation
-            gl.uniform1i(this.uniforms.enablePixelation, document.getElementById('enablePixelation').checked);
-            gl.uniform1f(this.uniforms.pixelSides, parseFloat(document.getElementById('pixelSides').value));
-            gl.uniform1f(this.uniforms.pixelSize, parseFloat(document.getElementById('pixelSize').value));
-            gl.uniform1f(this.uniforms.pixelAspect, parseFloat(document.getElementById('pixelAspect').value));
-
+            gl.uniform1i(this.uniforms.enablePixelation, getCheckboxValue('enablePixelation', false));
+            gl.uniform1f(this.uniforms.pixelSides, getInputValue('pixelSides', 4));
+            gl.uniform1f(this.uniforms.pixelSize, getInputValue('pixelSize', 0.05));
+            gl.uniform1f(this.uniforms.pixelAspect, getInputValue('pixelAspect', 1.0));
+    
             // Noise settings
-            gl.uniform1i(this.uniforms.noiseType, parseInt(document.getElementById('noiseType').value));
-            gl.uniform1f(this.uniforms.noiseScale, parseFloat(document.getElementById('noiseScale').value));
-            gl.uniform1i(this.uniforms.octaves, parseInt(document.getElementById('octaves').value));
-            gl.uniform1f(this.uniforms.persistence, parseFloat(document.getElementById('persistence').value));
-            gl.uniform1f(this.uniforms.lacunarity, parseFloat(document.getElementById('lacunarity').value));
-            gl.uniform1f(this.uniforms.domainWarp, parseFloat(document.getElementById('domainWarp').value));
+            gl.uniform1i(this.uniforms.noiseType, getSelectValue('noiseType', 0));
+            gl.uniform1f(this.uniforms.noiseScale, getInputValue('noiseScale', 1.0));
+            gl.uniform1i(this.uniforms.octaves, getInputValue('octaves', 4));
+            gl.uniform1f(this.uniforms.persistence, getInputValue('persistence', 0.5));
+            gl.uniform1f(this.uniforms.lacunarity, getInputValue('lacunarity', 2.0));
+            gl.uniform1f(this.uniforms.domainWarp, getInputValue('domainWarp', 0));
             
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             requestAnimationFrame(render);
