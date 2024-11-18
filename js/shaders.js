@@ -527,29 +527,53 @@ vec2 pixelate(vec2 uv) {
     }
             
     // Hexagonal grid
-    else if (pixelSides == 6.0) {
-        float hexWidth = aspectCellSize.x * 1.5;
-        float hexHeight = aspectCellSize.y * 0.866 * 2.0;
-        vec2 repeating = vec2(hexWidth * 2.0, hexHeight);
-        vec2 center = vec2(0.0);
-        float offset = mod(floor(uv.y / hexHeight), 2.0) * hexWidth;
-                
-        vec2 coord = vec2(uv.x - offset, uv.y);
-        center.x = floor(coord.x / repeating.x) * repeating.x + hexWidth;
-        center.y = floor(coord.y / repeating.y) * repeating.y + hexHeight * 0.5;
-                
-        if (offset != 0.0) {
-            center.x += hexWidth;
+else if (pixelSides == 6.0) {
+    // Base size with aspect ratio normalization
+    float hexSize = aspectCellSize.x / sqrt(pixelAspect);
+    
+    // Normalized dimensions
+    float hexWidth = hexSize * 1.732 * pixelAspect;
+    float hexHeight = hexSize * 2.0 / pixelAspect;
+    float hexHalfWidth = hexWidth * 0.5;
+    float hexRowHeight = hexHeight * 0.75;
+
+    // Scale UV coordinates
+    vec2 aspectUV = uv;
+    aspectUV.x /= pixelAspect;
+    aspectUV.y *= pixelAspect;
+    
+    float row = floor(aspectUV.y / hexRowHeight);
+    float rowIsOdd = mod(row, 2.0);
+    float col = floor((aspectUV.x - rowIsOdd * hexHalfWidth) / hexWidth);
+    
+    vec2 hexCenter = vec2(
+        (col * hexWidth) + (rowIsOdd * hexHalfWidth) + hexHalfWidth,
+        row * hexRowHeight + (hexHeight * 0.25)
+    );
+    
+    vec2 nearestCenter = hexCenter;
+    float minDist = length(aspectUV - hexCenter);
+    
+    for(int i = -1; i <= 1; i++) {
+        for(int j = -1; j <= 1; j++) {
+            vec2 neighborCenter = hexCenter + vec2(
+                float(i) * hexWidth + (mod(row + float(j), 2.0) - rowIsOdd) * hexHalfWidth,
+                float(j) * hexRowHeight
+            );
+            float dist = length(aspectUV - neighborCenter);
+            if(dist < minDist) {
+                minDist = dist;
+                nearestCenter = neighborCenter;
+            }
         }
-                
-        // Find the nearest hexagon center
-        vec2 deltaFromCenter = uv - center;
-        float angle = atan(deltaFromCenter.y, deltaFromCenter.x);
-        angle = floor((angle + PI) / (PI / 3.0)) * (PI / 3.0);
-                
-        return center + vec2(cos(angle), sin(angle)) * hexWidth * 0.5;
     }
-            
+    
+    // Reverse aspect ratio correction
+    nearestCenter.x *= pixelAspect;
+    nearestCenter.y /= pixelAspect;
+    return nearestCenter;
+}
+       
     return uv;
 }
 
