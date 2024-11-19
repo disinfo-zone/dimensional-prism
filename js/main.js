@@ -127,7 +127,9 @@ class Renderer {
             midtones: gl.getUniformLocation(this.program, 'midtones'),
             shadows: gl.getUniformLocation(this.program, 'shadows'),
             highlights: gl.getUniformLocation(this.program, 'highlights'),
-            colorBalance: gl.getUniformLocation(this.program, 'colorBalance')
+            colorBalance: gl.getUniformLocation(this.program, 'colorBalance'),
+            pixelGap: gl.getUniformLocation(this.program, 'pixelGap'),
+            backgroundColor: gl.getUniformLocation(this.program, 'backgroundColor')
         };
     }
 
@@ -202,6 +204,7 @@ class Renderer {
             gl.uniform1f(this.uniforms.pixelSides, getInputValue('pixelSides', 4));
             gl.uniform1f(this.uniforms.pixelSize, getInputValue('pixelSize', 0.05));
             gl.uniform1f(this.uniforms.pixelAspect, getInputValue('pixelAspect', 1.0));
+            gl.uniform1f(this.uniforms.pixelGap, getInputValue('pixelGap', 0));
     
             // Noise settings
             gl.uniform1i(this.uniforms.noiseType, getSelectValue('noiseType', 0));
@@ -213,6 +216,29 @@ class Renderer {
             
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             requestAnimationFrame(render);
+
+            const bgColorSelect = document.getElementById('bgColor');
+            const customBgColor = document.getElementById('customBgColor');
+            let bgColor = [0, 0, 0, 1]; // Default black
+        
+            switch(bgColorSelect.value) {
+                case 'white':
+                    bgColor = [1, 1, 1, 1];
+                    break;
+                case 'transparent':
+                    bgColor = [0, 0, 0, 0];
+                    break;
+                case 'custom':
+                    const hex = customBgColor.value;
+                    bgColor = [
+                        parseInt(hex.slice(1,3), 16) / 255,
+                        parseInt(hex.slice(3,5), 16) / 255,
+                        parseInt(hex.slice(5,7), 16) / 255,
+                        1
+                    ];
+                    break;
+            }
+            gl.uniform4fv(this.uniforms.backgroundColor, bgColor);
         };
         
         requestAnimationFrame(render);

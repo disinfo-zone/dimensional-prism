@@ -27,7 +27,8 @@ const SETTINGS_MAP = [
     ['midtones', 100],
     ['highlights', 100], 
     ['shadows', 100],
-    ['colorBalance', 100]
+    ['colorBalance', 100],
+    ['pixelGap', 100]
 ];
 
 const MULTIPLIERS = {
@@ -51,6 +52,40 @@ const MULTIPLIERS = {
     pixelAspect: 100
 };
 
+document.getElementById('bgColor').addEventListener('change', function(e) {
+    const customColorInput = document.getElementById('customBgColor');
+    if (e.target.value === 'custom') {
+        customColorInput.style.display = 'block';
+    } else {
+        customColorInput.style.display = 'none';
+    }
+    updateBackgroundColor();
+});
+
+document.getElementById('customBgColor').addEventListener('input', updateBackgroundColor);
+
+function updateBackgroundColor() {
+    const bgColorSelect = document.getElementById('bgColor');
+    const customBgColor = document.getElementById('customBgColor');
+    let bgColor = [0, 0, 0, 1]; // Default black
+
+    switch(bgColorSelect.value) {
+        case 'white':
+            bgColor = [1, 1, 1, 1];
+            break;
+        case 'custom':
+            const hex = customBgColor.value;
+            bgColor = [
+                parseInt(hex.slice(1,3), 16) / 255,
+                parseInt(hex.slice(3,5), 16) / 255,
+                parseInt(hex.slice(5,7), 16) / 255,
+                1
+            ];
+            break;
+    }
+    
+    gl.uniform4fv(uniforms.backgroundColor, bgColor);
+}
 
 class Controls {
     constructor() {
@@ -156,7 +191,8 @@ class Controls {
             { id: 'midtones' },
             { id: 'shadows' },
             { id: 'highlights' },
-            { id: 'colorBalance' }
+            { id: 'colorBalance' },
+            { id: 'pixelGap' }
         ];
 
         displayConfigs.forEach(config => {
