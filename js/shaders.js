@@ -514,6 +514,7 @@ vec2 pixelate(vec2 uv) {
         isGap = max(fromCenter.x, fromCenter.y) > 0.5;
     }
             
+// Triangular grid
 else if (pixelSides == 3.0) {
     float size = aspectCellSize.x;
     
@@ -534,7 +535,7 @@ else if (pixelSides == 3.0) {
     vec2 fromCenter = uv - center;
     float normalizedDist = (abs(fromCenter.x) / aspectCellSize.x + 
                           abs(fromCenter.y) / aspectCellSize.y);
-    isGap = normalizedDist > 1.0 || normalizedDist < pixelGap;
+    isGap = normalizedDist > (1.0 - pixelGap);
     
     nearest = center;
 }
