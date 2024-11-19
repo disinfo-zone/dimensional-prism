@@ -38,6 +38,8 @@ uniform float midtones;
 uniform float highlights;
 uniform float shadows;
 uniform float colorBalance;
+uniform float pixelGap;
+uniform vec4 backgroundColor;
 
 const float PI = 3.14159265359;
 
@@ -495,72 +497,83 @@ vec3 getPaletteColor(float t) {
     return mix(vec3(luma), sRGB, saturation / 100.0);
 }
 
+
+
 vec2 pixelate(vec2 uv) {
-    vec2 aspectCellSize = vec2(pixelSize * pixelAspect, pixelSize);
-            
-    // Square grid
+    vec2 aspectCellSize = vec2(pixelSize * pixelAspect, pixelSize) * (1.0 + pixelGap);
+    vec2 nearest;
+    bool isGap = false;
+
+    // Square grid (known working code)
     if (pixelSides == 4.0) {
-        return floor(uv / aspectCellSize) * aspectCellSize + aspectCellSize * 0.5;
+        vec2 grid = floor(uv / aspectCellSize) * aspectCellSize;
+        vec2 center = grid + aspectCellSize * 0.5;
+        nearest = center;
+        
+        vec2 fromCenter = abs(uv - center) / vec2(pixelSize * pixelAspect, pixelSize);
+        isGap = max(fromCenter.x, fromCenter.y) > 0.5;
     }
             
-    // Triangular grid
-    else if (pixelSides == 3.0) {
-        float triHeight = aspectCellSize.y * 0.866; // sqrt(3)/2
-        float triWidth = aspectCellSize.x;
-                
-        float row = floor(uv.y / triHeight);
-        float offset = mod(row, 2.0) * 0.5;
-        float col = floor(uv.x / triWidth - offset);
-                
-        vec2 center = vec2(
-            (col + offset + 0.5) * triWidth,
-            (row + 0.5) * triHeight
-        );
-                
-        // Find the nearest triangle center
-        vec2 p = uv - center;
-        float angle = atan(p.y, p.x) + PI;
-        float sextant = floor(angle / (PI / 3.0));
-        angle = (sextant + 0.5) * (PI / 3.0);
-                
-        return center + vec2(cos(angle), sin(angle)) * triWidth * 0.5;
-    }
-            
-    // Hexagonal grid
-else if (pixelSides == 6.0) {
-    // Base size with aspect ratio normalization
-    float hexSize = aspectCellSize.x / sqrt(pixelAspect);
+else if (pixelSides == 3.0) {
+    float size = aspectCellSize.x;
     
-    // Normalized dimensions
-    float hexWidth = hexSize * 1.732 * pixelAspect;
-    float hexHeight = hexSize * 2.0 / pixelAspect;
+    // Start with basic square grid like the working square code
+    vec2 grid = floor(uv / aspectCellSize) * aspectCellSize;
+    vec2 center = grid + aspectCellSize * 0.5;
+    
+    // Get position relative to cell center
+    vec2 toCenter = (uv - center) / aspectCellSize;
+    
+    // Convert square to triangle by using diagonal test
+    float diagonal = toCenter.x + toCenter.y;
+    if (diagonal > 0.0) {
+        center += aspectCellSize * 0.5;
+    }
+    
+    // Calculate gap using triangle shape instead of square
+    vec2 fromCenter = uv - center;
+    float normalizedDist = (abs(fromCenter.x) / aspectCellSize.x + 
+                          abs(fromCenter.y) / aspectCellSize.y);
+    isGap = normalizedDist > 1.0 || normalizedDist < pixelGap;
+    
+    nearest = center;
+}
+
+// Hexagonal grid
+else if (pixelSides == 6.0) {
+    float hexSize = aspectCellSize.x;
+    float hexWidth = hexSize * 1.732; // sqrt(3)
+    float hexHeight = hexSize * 2.0;
     float hexHalfWidth = hexWidth * 0.5;
     float hexRowHeight = hexHeight * 0.75;
-
-    // Scale UV coordinates
-    vec2 aspectUV = uv;
-    aspectUV.x /= pixelAspect;
-    aspectUV.y *= pixelAspect;
     
-    float row = floor(aspectUV.y / hexRowHeight);
+    // Scale the grid spacing (not the hex size) based on gap
+    float gridScale = 1.0 + pixelGap;
+    float scaledHexWidth = hexWidth * gridScale;
+    float scaledHexRowHeight = hexRowHeight * gridScale;
+    float scaledHexHalfWidth = hexHalfWidth * gridScale;
+    
+    float row = floor(uv.y / scaledHexRowHeight);
     float rowIsOdd = mod(row, 2.0);
-    float col = floor((aspectUV.x - rowIsOdd * hexHalfWidth) / hexWidth);
+    float col = floor((uv.x - rowIsOdd * scaledHexHalfWidth) / scaledHexWidth);
     
+    // Calculate hex center using scaled grid
     vec2 hexCenter = vec2(
-        (col * hexWidth) + (rowIsOdd * hexHalfWidth) + hexHalfWidth,
-        row * hexRowHeight + (hexHeight * 0.25)
+        (col * scaledHexWidth) + (rowIsOdd * scaledHexHalfWidth) + scaledHexHalfWidth,
+        row * scaledHexRowHeight + (scaledHexRowHeight * 0.333)
     );
     
+    // Find nearest hex center including the six surrounding hexes
     vec2 nearestCenter = hexCenter;
-    float minDist = length(aspectUV - hexCenter);
+    float minDist = length(uv - hexCenter);
     
     for(int i = -1; i <= 1; i++) {
         for(int j = -1; j <= 1; j++) {
             vec2 neighborCenter = hexCenter + vec2(
-                float(i) * hexWidth + (mod(row + float(j), 2.0) - rowIsOdd) * hexHalfWidth,
-                float(j) * hexRowHeight
+                float(i) * scaledHexWidth + (mod(row + float(j), 2.0) - rowIsOdd) * scaledHexHalfWidth,
+                float(j) * scaledHexRowHeight
             );
-            float dist = length(aspectUV - neighborCenter);
+            float dist = length(uv - neighborCenter);
             if(dist < minDist) {
                 minDist = dist;
                 nearestCenter = neighborCenter;
@@ -568,13 +581,21 @@ else if (pixelSides == 6.0) {
         }
     }
     
-    // Reverse aspect ratio correction
-    nearestCenter.x *= pixelAspect;
-    nearestCenter.y /= pixelAspect;
-    return nearestCenter;
+    // Create gap by checking if point is outside the original hex size
+    vec2 fromCenter = uv - nearestCenter;
+    float angle = atan(fromCenter.y, fromCenter.x);
+    float sectorAngle = mod(angle + PI / 6.0, PI / 3.0) - PI / 6.0;
+    float hexRadius = hexHalfWidth / cos(sectorAngle);
+    
+    isGap = length(fromCenter) > hexRadius;
+    nearest = nearestCenter;
 }
-       
-    return uv;
+
+    if (isGap) {
+        return vec2(-999999.0);
+    }
+    
+    return nearest;
 }
 
 vec2 applyMirrors(vec2 uv) {
@@ -627,7 +648,15 @@ void main() {
     vec2 foldedUV = vec2(cos(a), sin(a)) * l; // Remove centerPoint addition here
     
     // 3. Finally apply pixelation to the folded result
-    vec2 finalUV = enablePixelation ? pixelate(foldedUV) : foldedUV;
+        vec2 finalUV = foldedUV;
+    if (enablePixelation) {
+        vec2 pixelatedUV = pixelate(foldedUV);
+        if (pixelatedUV.x < -999998.0) {
+            gl_FragColor = backgroundColor;
+            return; // Exit early for gaps
+        }
+        finalUV = pixelatedUV;
+    }
         
     // Create organic flowing patterns using the final UV
     float t = time * speed;

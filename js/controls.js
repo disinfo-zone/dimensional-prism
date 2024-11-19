@@ -27,7 +27,8 @@ const SETTINGS_MAP = [
     ['midtones', 100],
     ['highlights', 100], 
     ['shadows', 100],
-    ['colorBalance', 100]
+    ['colorBalance', 100],
+    ['pixelGap', 100]
 ];
 
 const MULTIPLIERS = {

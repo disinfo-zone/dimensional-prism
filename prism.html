@@ -164,6 +164,18 @@
             <label>Aspect Ratio <span class="value-display" id="pixelAspectValue">1.0</span>
                 <input type="range" id="pixelAspect" min="0.5" max="2" step="0.1" value="1.0">
             </label>
+            <label>Pixel Gap <span class="value-display" id="pixelGapValue">0.0</span>
+                <input type="range" id="pixelGap" min="0" max="0.5" step="0.01" value="0">
+            </label>
+            <label>Background Color
+                <select id="bgColor">
+                    <option value="black">Black</option>
+                    <option value="white">White</option>
+                    <option value="transparent">Transparent</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <input type="color" id="customBgColor" value="#000000" style="display: none;">
+            </label>
         </div>
         <div class="control-group">
             <h3>Color Configuration</h3>
